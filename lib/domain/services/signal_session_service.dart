@@ -82,11 +82,8 @@ class SignalSessionService {
   final List<CryptoStepRecord> _stepRecords = [];
   List<CryptoStepRecord> get stepRecords => List.unmodifiable(_stepRecords);
 
-  // Callback for real-time crypto events
-  CryptoStepCallback? _callback;
-
+  /// Set crypto step callback for visualization
   void setCallback(CryptoStepCallback? cb) {
-    _callback = cb;
     Curve25519.callback = cb;
     HkdfSha256.callback = cb;
     Aes256Gcm.callback = cb;
@@ -274,7 +271,6 @@ class SignalSessionService {
 
     if (messageKey == null) {
       // 重新派生到指定 index
-      final chain = direction == MessageDirection.aliceToBob ? _aliceChain : _bobChain;
       final initLabel = direction == MessageDirection.aliceToBob
           ? 'alice_to_bob_chain'
           : 'bob_to_alice_chain';
