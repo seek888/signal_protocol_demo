@@ -1,0 +1,40 @@
+name: 🚀 Release
+
+on:
+  push:
+    tags: ['v*']
+
+env:
+  FLUTTER_VERSION: '3.32.0'
+
+jobs:
+  build-windows:
+    name: Build Windows Release
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: stable
+          cache: true
+
+      - run: flutter pub get
+      - run: dart run build_runner build --delete-conflicting-outputs
+
+      - name: Build Windows
+        run: flutter build windows --release
+
+      - name: Zip Release
+        shell: pwsh
+        run: |
+          Compress-Archive -Path build/windows/x64/runner/Release/* -DestinationPath signal-protocol-demo-windows-${{ github.ref_name }}.zip
+
+      - name: Upload to Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: signal-protocol-demo-windows-${{ github.ref_name }}.zip
+          draft: false
+          generate_release_notes: true
+          prerelease: ${{ contains(github.ref_name, '-') }}
