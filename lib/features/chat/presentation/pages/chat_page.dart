@@ -96,6 +96,8 @@ class _ChatPageState extends ConsumerState<ChatPage> {
               ratchetStepCount: state.ratchetStepCount,
               messageCount: state.messages.length,
             ),
+          if (state.isSessionEstablished)
+            _buildSenderSwitch(context, ref, state),
           if (state.errorMessage != null)
             Container(
               width: double.infinity,
@@ -139,6 +141,71 @@ class _ChatPageState extends ConsumerState<ChatPage> {
         ],
       ),
     );
+  }
+
+  Widget _buildSenderSwitch(BuildContext context, WidgetRef ref, ChatState state) {
+    final isAlice = state.currentSender == 'alice';
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Row(
+        children: [
+          Icon(
+            isAlice ? Icons.person : Icons.person_outline,
+            size: 16,
+            color: isAlice ? Colors.blue : Colors.grey,
+          ),
+          const SizedBox(width: 6),
+          Text(
+            isAlice ? 'Alice 发送' : 'Bob 发送',
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+              color: isAlice ? Colors.blue : Colors.green,
+            ),
+          ),
+          const Spacer(),
+          Text(
+            'A: ${_getAliceCount(ref)}条  B: ${_getBobCount(ref)}条',
+            style: TextStyle(fontSize: 10, color: Colors.grey.shade500),
+          ),
+          const SizedBox(width: 8),
+          GestureDetector(
+            onTap: () => ref.read(chatViewModelProvider.notifier).switchSender(),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+              decoration: BoxDecoration(
+                color: isAlice ? Colors.blue.shade700 : Colors.green.shade700,
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    isAlice ? 'Alice' : 'Bob',
+                    style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.white),
+                  ),
+                  const SizedBox(width: 4),
+                  const Icon(Icons.swap_horiz, size: 14, color: Colors.white),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  int _getAliceCount(WidgetRef ref) {
+    return ref.read(chatViewModelProvider).messages.where((m) => m.direction == UIMessageDirection.sent && m.status != MessageStatus.pending).length;
+  }
+
+  int _getBobCount(WidgetRef ref) {
+    return ref.read(chatViewModelProvider).messages.where((m) => m.direction == UIMessageDirection.received && m.status != MessageStatus.pending).length;
   }
 
   Widget _buildWelcomeView(BuildContext context, WidgetRef ref, ChatState state) {
@@ -242,14 +309,7 @@ class _ChatPageState extends ConsumerState<ChatPage> {
               ),
               const SizedBox(height: 24),
               _buildDetailRow('Direction',
-                  msg.direction == MessageDirection.sent ? 'Alice → Bob' : 'Bob → Alice'),
-              _buildDetailRow('Status', msg.status.name),
-              _buildDetailRow('Message Index', '#${msg.messageIndex ?? 'N/A'}'),
-              _buildDetailRow('Timestamp', msg.timestamp.toString()),
-              const SizedBox(height: 24),
-
-              // === Alice 加密流程 ===
-              _buildSectionHeader('🔵 Alice (Sender)', Colors.blue),
+                  msg.direction == UIMessageDirection.sent ? 'Alice → Bob' : 'Bob → Alice'),
               const SizedBox(height: 8),
               const Text('Step 1 — Plaintext', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
               const SizedBox(height: 4),

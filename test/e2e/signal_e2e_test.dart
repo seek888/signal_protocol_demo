@@ -106,5 +106,61 @@ void main() {
         throwsA(anything),
       );
     });
+
+    test('bidirectional: Bob can reply to Alice with separate chain', () async {
+      await service.performX3DHHandshake();
+
+      // Alice → Bob
+      final aResult = await service.encryptMessage('Hello from Alice');
+      expect(aResult.direction, MessageDirection.aliceToBob);
+      final aDecrypted = await service.decryptMessage(
+        aResult.ciphertext, aResult.messageIndex,
+        direction: MessageDirection.aliceToBob,
+      );
+      expect(aDecrypted, 'Hello from Alice');
+
+      // Bob → Alice (different chain key!)
+      final bResult = await service.encryptMessage(
+        'Hi Alice, message received!',
+        direction: MessageDirection.bobToAlice,
+      );
+      expect(bResult.direction, MessageDirection.bobToAlice);
+      expect(bResult.messageIndex, 0, reason: 'Bob chain starts from 0');
+      final bDecrypted = await service.decryptMessage(
+        bResult.ciphertext, bResult.messageIndex,
+        direction: MessageDirection.bobToAlice,
+      );
+      expect(bDecrypted, 'Hi Alice, message received!');
+
+      // Alice sends again — her chain continues independently
+      final aResult2 = await service.encryptMessage('Another from Alice');
+      expect(aResult2.messageIndex, 1, reason: 'Alice chain at index 1');
+      final aDecrypted2 = await service.decryptMessage(
+        aResult2.ciphertext, aResult2.messageIndex,
+        direction: MessageDirection.aliceToBob,
+      );
+      expect(aDecrypted2, 'Another from Alice');
+
+      // Bob sends again — his chain also continues
+      final bResult2 = await service.encryptMessage(
+        'Bob replies again',
+        direction: MessageDirection.bobToAlice,
+      );
+      expect(bResult2.messageIndex, 1);
+    });
+
+    test('bidirectional keys are different between directions', () async {
+      await service.performX3DHHandshake();
+
+      final aResult = await service.encryptMessage('same text');
+      final bResult = await service.encryptMessage(
+        'same text',
+        direction: MessageDirection.bobToAlice,
+      );
+
+      // Same plaintext, but ciphertext must differ (different keys)
+      expect(aResult.ciphertext.toString(), isNot(bResult.ciphertext.toString()));
+      expect(aResult.messageKey.toString(), isNot(bResult.messageKey.toString()));
+    });
   });
 }

@@ -19,7 +19,7 @@ final _privateConstructorUsedError = UnsupportedError(
 mixin _$ChatMessage {
   String get id => throw _privateConstructorUsedError;
   String get text => throw _privateConstructorUsedError;
-  MessageDirection get direction => throw _privateConstructorUsedError;
+  UIMessageDirection get direction => throw _privateConstructorUsedError;
   MessageStatus get status => throw _privateConstructorUsedError;
   DateTime get timestamp => throw _privateConstructorUsedError;
   String? get ciphertextHex => throw _privateConstructorUsedError;
@@ -43,7 +43,7 @@ abstract class $ChatMessageCopyWith<$Res> {
   $Res call({
     String id,
     String text,
-    MessageDirection direction,
+    UIMessageDirection direction,
     MessageStatus status,
     DateTime timestamp,
     String? ciphertextHex,
@@ -89,7 +89,7 @@ class _$ChatMessageCopyWithImpl<$Res, $Val extends ChatMessage>
             direction: null == direction
                 ? _value.direction
                 : direction // ignore: cast_nullable_to_non_nullable
-                      as MessageDirection,
+                      as UIMessageDirection,
             status: null == status
                 ? _value.status
                 : status // ignore: cast_nullable_to_non_nullable
@@ -128,7 +128,7 @@ abstract class _$$ChatMessageImplCopyWith<$Res>
   $Res call({
     String id,
     String text,
-    MessageDirection direction,
+    UIMessageDirection direction,
     MessageStatus status,
     DateTime timestamp,
     String? ciphertextHex,
@@ -173,7 +173,7 @@ class __$$ChatMessageImplCopyWithImpl<$Res>
         direction: null == direction
             ? _value.direction
             : direction // ignore: cast_nullable_to_non_nullable
-                  as MessageDirection,
+                  as UIMessageDirection,
         status: null == status
             ? _value.status
             : status // ignore: cast_nullable_to_non_nullable
@@ -218,7 +218,7 @@ class _$ChatMessageImpl implements _ChatMessage {
   @override
   final String text;
   @override
-  final MessageDirection direction;
+  final UIMessageDirection direction;
   @override
   final MessageStatus status;
   @override
@@ -281,7 +281,7 @@ abstract class _ChatMessage implements ChatMessage {
   const factory _ChatMessage({
     required final String id,
     required final String text,
-    required final MessageDirection direction,
+    required final UIMessageDirection direction,
     required final MessageStatus status,
     required final DateTime timestamp,
     final String? ciphertextHex,
@@ -294,7 +294,7 @@ abstract class _ChatMessage implements ChatMessage {
   @override
   String get text;
   @override
-  MessageDirection get direction;
+  UIMessageDirection get direction;
   @override
   MessageStatus get status;
   @override

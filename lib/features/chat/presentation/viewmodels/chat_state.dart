@@ -1,7 +1,7 @@
 import 'package:freezed_annotation/freezed_annotation.dart';
 part 'chat_state.freezed.dart';
 
-enum MessageDirection { sent, received }
+enum UIMessageDirection { sent, received }
 enum MessageStatus { pending, encrypted, decrypted, failed }
 
 @freezed
@@ -9,7 +9,7 @@ class ChatMessage with _$ChatMessage {
   const factory ChatMessage({
     required String id,
     required String text,
-    required MessageDirection direction,
+    required UIMessageDirection direction,
     required MessageStatus status,
     required DateTime timestamp,
     String? ciphertextHex,

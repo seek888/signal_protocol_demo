@@ -9,7 +9,7 @@ class MessageBubble extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isSent = message.direction == MessageDirection.sent;
+    final isSent = message.direction == UIMessageDirection.sent;
     final isPending = message.status == MessageStatus.pending;
 
     return Align(

@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:uuid/uuid.dart';
 import '../../../../app/di/injection.dart';
@@ -26,6 +27,17 @@ class ChatViewModel extends StateNotifier<ChatState> {
     _decryptUseCase = getIt<DecryptMessageUseCase>();
   }
 
+  /// 当前发送方：'alice' 或 'bob'
+  bool get _isAliceSender => state.currentSender == 'alice';
+
+  /// 切换发送方
+  void switchSender() {
+    state = state.copyWith(
+      currentSender: _isAliceSender ? 'bob' : 'alice',
+      errorMessage: null,
+    );
+  }
+
   /// 初始化 Alice 和 Bob 身份，执行 X3DH 握手
   Future<void> establishSession() async {
     state = state.copyWith(isEstablishing: true, errorMessage: null);
@@ -46,26 +58,34 @@ class ChatViewModel extends StateNotifier<ChatState> {
     }
   }
 
-  /// 发送加密消息（Alice → Bob）
+  /// 发送加密消息
   ///
-  /// 流程：
-  /// 1. Alice 加密 → 显示蓝色气泡（已加密）
-  /// 2. 显示"传输中"状态（灰色气泡 + loading）
-  /// 3. Bob 解密 → 更新为解密结果
+  /// 根据当前发送方（Alice 或 Bob），使用对应方向的 chain key 加密。
+  /// 接收方自动解密并显示。
   Future<void> sendMessage(String text) async {
     if (!_signalService.isSessionEstablished) {
       state = state.copyWith(errorMessage: 'Session not established');
       return;
     }
 
-    try {
-      // === Step 1: Alice 加密 ===
-      final result = await _encryptUseCase.execute(text);
+    final isAlice = _isAliceSender;
+    final direction = isAlice
+        ? MessageDirection.aliceToBob
+        : MessageDirection.bobToAlice;
 
-      final aliceMsg = ChatMessage(
+    // UI 方向：Alice 发 = sent（右侧蓝），Bob 发 = received（左侧灰）
+    final uiDirection = isAlice ? UIMessageDirection.sent : UIMessageDirection.received;
+    // 接收方的 UI 方向相反
+    final receiverUiDirection = isAlice ? UIMessageDirection.received : UIMessageDirection.sent;
+
+    try {
+      // === Step 1: 发送方加密 ===
+      final result = await _encryptUseCase.execute(text, direction: direction);
+
+      final senderMsg = ChatMessage(
         id: _uuid.v4(),
         text: text,
-        direction: MessageDirection.sent,
+        direction: uiDirection,
         status: MessageStatus.encrypted,
         timestamp: DateTime.now(),
         ciphertextHex: _bytesToHex(result.ciphertext),
@@ -73,12 +93,12 @@ class ChatViewModel extends StateNotifier<ChatState> {
         messageIndex: result.messageIndex,
       );
 
-      // === Step 2: 插入 Bob 的"传输中"占位消息 ===
-      final bobMsgId = _uuid.v4();
-      final bobTransitMsg = ChatMessage(
-        id: bobMsgId,
+      // === Step 2: 插入接收方"传输中"占位消息 ===
+      final receiverMsgId = _uuid.v4();
+      final receiverTransitMsg = ChatMessage(
+        id: receiverMsgId,
         text: '...',
-        direction: MessageDirection.received,
+        direction: receiverUiDirection,
         status: MessageStatus.pending,
         timestamp: DateTime.now(),
         ciphertextHex: _bytesToHex(result.ciphertext),
@@ -87,22 +107,23 @@ class ChatViewModel extends StateNotifier<ChatState> {
       );
 
       state = state.copyWith(
-        messages: [...state.messages, aliceMsg, bobTransitMsg],
+        messages: [...state.messages, senderMsg, receiverTransitMsg],
         ratchetStepCount: state.ratchetStepCount + 1,
       );
 
       // === Step 3: 模拟网络传输延迟 ===
       await Future.delayed(const Duration(milliseconds: 800));
 
-      // === Step 4: Bob 解密 ===
+      // === Step 4: 接收方解密 ===
       final decryptedText = await _decryptUseCase.execute(
         result.ciphertext,
         result.messageIndex,
+        direction: direction,
       );
 
-      // 更新 Bob 的消息为解密完成
+      // 更新接收方消息为解密完成
       final messages = List<ChatMessage>.from(state.messages);
-      final idx = messages.indexWhere((m) => m.id == bobMsgId);
+      final idx = messages.indexWhere((m) => m.id == receiverMsgId);
       if (idx >= 0) {
         messages[idx] = messages[idx].copyWith(
           text: decryptedText,
